@@ -4,12 +4,10 @@ import (
 	"fmt"
 
 	"github.com/spf13/viper"
-
-	"github.com/irisnet/service-providers-go/token-price/utils"
 )
 
 var (
-	ConfigPath = utils.MustGetHomeDir() + "/.token-price-sp/config.yaml"
+	ConfigPath = "./config.yaml"
 )
 
 // LoadYAMLConfig loads the YAML config file

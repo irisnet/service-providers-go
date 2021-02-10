@@ -1,7 +1,7 @@
 package types
 
 const (
-	ServiceName = "token-price"
+	ServiceName = "tps"
 )
 
 type RequestCallback func(reqID, input string) (output *ServiceOutput, requestResult *RequestResult)
