@@ -1,7 +1,12 @@
-FROM golang
+FROM golang as builder
 
 WORKDIR /app
-ADD . /app
-RUN cd /app && make install
+ADD . .
 
-ENTRYPOINT ["random-seed", "start"]
+RUN make install
+
+FROM golang
+
+COPY --from=builder /go/bin/random-seed-sp /usr/local/bin
+
+ENTRYPOINT ["random-seed-sp", "start"]

@@ -5,5 +5,5 @@ service:
   node_grpc_addr: localhost:9090
   key_path: .keys
   key_name: sp
-  fee: 4point
+  fee: 4uiris
   key_algorithm: sm2

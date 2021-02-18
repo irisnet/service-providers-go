@@ -15,7 +15,7 @@ var (
 	defaultNodeGRPCAddr  = "127.0.0.1:9090"
 	defaultKeyPath       = utils.MustGetHomeDir() + "/.iriscli"
 	defaultGas           = uint64(200000)
-	defaultFee           = "4point"
+	defaultFee           = "4uiris"
 	defaultBroadcastMode = types.Commit
 	defaultKeyAlgorithm  = "sm2"
 )
