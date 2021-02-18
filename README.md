@@ -61,5 +61,5 @@ key_algorithm: sm2
     -run
 
         ```shell
-        docker run {{service_name}} start
+        docker run -it {{service_name}}
         ```
