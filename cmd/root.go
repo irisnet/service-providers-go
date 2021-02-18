@@ -10,8 +10,8 @@ import (
 // rootCmd is the entry
 var (
 	rootCmd = &cobra.Command{
-		Use:   "random-seed-sp",
-		Short: "provider daemon command line interface",
+		Use:   "token-price-sp",
+		Short: "service-providers-go-go",
 	}
 )
 

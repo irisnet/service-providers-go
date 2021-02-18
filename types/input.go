@@ -2,5 +2,29 @@
 
 package types
 
-// IRIS Hub Random Seed Input Body Schema
-type ServiceInput map[string]interface{}
+import "fmt"
+import "encoding/json"
+
+// Interchain Service Oracle Price Input Body Schema
+type ServiceInput struct {
+	// exchange pair
+	Pair string `json:"pair"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *ServiceInput) UnmarshalJSON(b []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return err
+	}
+	if v, ok := raw["pair"]; !ok || v == nil {
+		return fmt.Errorf("field pair: required")
+	}
+	type Plain ServiceInput
+	var plain Plain
+	if err := json.Unmarshal(b, &plain); err != nil {
+		return err
+	}
+	*j = ServiceInput(plain)
+	return nil
+}

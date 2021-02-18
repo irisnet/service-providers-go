@@ -6,7 +6,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/irisnet/service-providers-go/random-seed/types"
+	"github.com/irisnet/service-providers-go/token-price/types"
 )
 
 // CallbackHandler is processing function of RequestCallback

@@ -1,16 +1,16 @@
 package service
 
 import (
-	"github.com/irisnet/service-sdk-go/types"
 	"github.com/spf13/viper"
+	"github.com/irisnet/service-sdk-go/types"
 
-	"github.com/irisnet/service-providers-go/random-seed/common"
-	"github.com/irisnet/service-providers-go/random-seed/utils"
+	"github.com/irisnet/service-providers-go/token-price/common"
+	"github.com/irisnet/service-providers-go/token-price/utils"
 )
 
 // default config variables
 var (
-	defaultChainID       = "iris-hub"
+	defaultChainID       = "iris"
 	defaultNodeRPCAddr   = "http://127.0.0.1:26657"
 	defaultNodeGRPCAddr  = "127.0.0.1:9090"
 	defaultKeyPath       = utils.MustGetHomeDir() + "/.iriscli"

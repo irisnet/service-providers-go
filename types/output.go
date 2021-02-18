@@ -5,10 +5,10 @@ package types
 import "fmt"
 import "encoding/json"
 
-// IRIS Hub Random Seed Output Body Schema
+// Interchain Service Oracle Price Output Body Schema
 type ServiceOutput struct {
-	// random-seed seed
-	Seed string `json:"seed"`
+	// exchange rate
+	Rate string `json:"rate"`
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
@@ -17,8 +17,8 @@ func (j *ServiceOutput) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return err
 	}
-	if v, ok := raw["seed"]; !ok || v == nil {
-		return fmt.Errorf("field seed: required")
+	if v, ok := raw["rate"]; !ok || v == nil {
+		return fmt.Errorf("field rate: required")
 	}
 	type Plain ServiceOutput
 	var plain Plain

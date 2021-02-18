@@ -7,8 +7,8 @@ import (
 	gp "github.com/howeyc/gopass"
 	"github.com/spf13/cobra"
 
-	"github.com/irisnet/service-providers-go/random-seed/common"
-	"github.com/irisnet/service-providers-go/random-seed/service"
+	"github.com/irisnet/service-providers-go/token-price/common"
+	"github.com/irisnet/service-providers-go/token-price/service"
 )
 
 var (

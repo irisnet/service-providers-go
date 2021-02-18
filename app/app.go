@@ -3,10 +3,10 @@ package app
 import (
 	log "github.com/sirupsen/logrus"
 
-	"github.com/irisnet/service-providers-go/random-seed/common"
-	"github.com/irisnet/service-providers-go/random-seed/service"
-	callback "github.com/irisnet/service-providers-go/random-seed/random-seed"
-	"github.com/irisnet/service-providers-go/random-seed/types"
+	"github.com/irisnet/service-providers-go/token-price/common"
+	"github.com/irisnet/service-providers-go/token-price/service"
+	callback "github.com/irisnet/service-providers-go/token-price/token-price"
+	"github.com/irisnet/service-providers-go/token-price/types"
 )
 
 // App represents the provider application
@@ -17,7 +17,9 @@ type App struct {
 }
 
 // NewApp constructs a new App instance
-func NewApp(serviceClient service.ServiceClientWrapper) App {
+func NewApp(
+	serviceClient service.ServiceClientWrapper,
+) App {
 	return App{
 		ServiceClient:   serviceClient,
 		RequestCallback: callback.RequestCallback,

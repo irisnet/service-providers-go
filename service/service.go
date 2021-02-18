@@ -6,8 +6,8 @@ import (
 	"github.com/irisnet/service-sdk-go/types/store"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/irisnet/service-providers-go/random-seed/common"
-	"github.com/irisnet/service-providers-go/random-seed/types"
+	"github.com/irisnet/service-providers-go/token-price/common"
+	"github.com/irisnet/service-providers-go/token-price/types"
 )
 
 // ServiceClientWrapper defines a wrapper for service client

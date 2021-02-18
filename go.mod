@@ -1,4 +1,4 @@
-module github.com/irisnet/service-providers-go/random-seed
+module github.com/irisnet/service-providers-go/token-price
 
 go 1.15
 
