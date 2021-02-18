@@ -45,7 +45,7 @@ key_algorithm: sm2
       ### 1.2 Import node0
 
         ```shell
-        {{service_name}}-sp keys import node0
+        random-seed-sp keys import node0
         ```
 
 ## 3  The files that need to be modified are on the floder random-seed/random-seed and token-price/token-price.
@@ -55,11 +55,11 @@ key_algorithm: sm2
     - build
     
         ```shell
-        docker build -t {{service_name}} .
+        docker build -t random-seed .
         ```
     
     -run
 
         ```shell
-        docker run -it {{service_name}}
+        docker run -it random-seed
         ```
