@@ -8,17 +8,11 @@ Service Providers Implemented in Golang
     | name | description |
     | :------: | :-------: |
     | chain_id | Chain id |
-    | ------ | ------- |
     | node_rpc_addr | Node URL |
-    | ------ | ------- |
     | node_grpc_addr | Node GRPC address |
-    | ------ | ------- |
     | key_path | Key path |
-    | ------ | ------- |
     | key_name | Key name |
-    | ------ | ------- |
     | fee | Transaction fee |
-    | ------ | ------- |
     | key_algorithm | Key algorithm |
 
 - Example
@@ -39,9 +33,7 @@ key_algorithm: sm2
     | commond | description |
     | :------: | :-------: |
     | add | New-build key |
-    | ------ | ------- |
     | show | Show information of key |
-    | ------ | ------- |
     | import | Import key |
       
     - You need to put the exported information into a file .keys, and specify the path of the file in config.yaml.
