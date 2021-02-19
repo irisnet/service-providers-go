@@ -14,6 +14,7 @@ import (
 	"github.com/irisnet/service-providers-go/token-price/types"
 )
 
+var accuracy = 6
 var TokenPriceAPI = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?CMC_PRO_API_KEY=43bf626f-772c-4d81-9bd4-db23a26f01d4&symbol="
 
 // RequestCallback provider need to supplement service logic
@@ -80,6 +81,7 @@ func getPrice(resbody string, tokens []string) (string, error) {
 		return "", errors.New("get token price err")
 	}
 
-	rate := strconv.FormatFloat(token0Price/token1Price, 'E', -1, 64)
+	rate := strconv.FormatFloat(token0Price/token1Price,'f',accuracy,64)
+
 	return rate, nil
 }
