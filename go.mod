@@ -4,7 +4,7 @@ go 1.15
 
 replace (
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
-	github.com/irisnet/service-sdk-go => /mnt/d/gocode/src/service-sdk-go
+	github.com/irisnet/service-sdk-go => github.com/GTLiSunnyi/service-sdk-go v1.0.0-rc0.0.20210209031210-5a83d5d7cffb
 	github.com/tendermint/tendermint => github.com/bianjieai/tendermint v0.34.1-irita-210113
 )
 

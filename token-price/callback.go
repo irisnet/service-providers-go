@@ -2,13 +2,13 @@ package token_price
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/tidwall/gjson"
-
-	sdk "github.com/irisnet/service-sdk-go/types"
 
 	"github.com/irisnet/service-providers-go/token-price/common"
 	"github.com/irisnet/service-providers-go/token-price/types"
@@ -38,7 +38,7 @@ func RequestCallback(reqID, input string) (
 	defer response.Body.Close()
 	if err != nil {
 		requestResult.State = types.ServiceError
-		requestResult.Message = "Request for site failed..."
+		requestResult.Message = err.Error()
 		return nil, requestResult
 	}
 
@@ -74,12 +74,12 @@ func parseInput(input string) (serviceInput *types.ServiceInput, err error) {
 }
 
 func getPrice(resbody string, tokens []string) (string, error) {
-	token0Price := gjson.Get(resbody, "data." + strings.ToUpper(tokens[0]) + ".quote.USD.price").String()
-	token1Price := gjson.Get(resbody, "data." + strings.ToUpper(tokens[1]) + ".quote.USD.price").String()
+	token0Price := gjson.Get(resbody, "data." + strings.ToUpper(tokens[0]) + ".quote.USD.price").Float()
+	token1Price := gjson.Get(resbody, "data." + strings.ToUpper(tokens[1]) + ".quote.USD.price").Float()
+	if token1Price == 0 {
+		return "", errors.New("get token price err")
+	}
 
-	price0, _ := sdk.NewDecFromStr(token0Price)
-	price1, _ := sdk.NewDecFromStr(token1Price)
-
-	rate := price0.Quo(price1).String()
+	rate := strconv.FormatFloat(token0Price/token1Price, 'E', -1, 64)
 	return rate, nil
 }
