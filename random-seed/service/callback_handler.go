@@ -56,16 +56,18 @@ func buildResAndOutput(
 ) (response, result string) {
 	resBz, err := json.Marshal(res)
 	if err != nil {
-		panic(err)
+		result = "failed to parse result"
+	} else {
+		result = string(resBz)
 	}
-	result = string(resBz)
 
 	if res.Code == 200 {
 		outputBz, err := json.Marshal(&serviceOutput)
 		if err != nil {
-			panic(err)
+			response = "failed to parse response"
+		} else {
+			response = fmt.Sprintf(`{"header":{},"body":%s}`, string(outputBz))
 		}
-		response = fmt.Sprintf(`{"header":{},"body":%s}`, string(outputBz))
 	}
 
 	return response, result
