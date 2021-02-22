@@ -5,7 +5,7 @@ ADD . .
 
 RUN make install
 
-FROM golang-alpine
+FROM ubuntu:16.04
 
 COPY --from=builder /go/bin/random-seed-sp /usr/local/bin
 

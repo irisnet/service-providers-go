@@ -1,9 +1,0 @@
-# service config
-service:
-  chain_id: iris
-  node_rpc_addr: http://localhost:26657
-  node_grpc_addr: localhost:9090
-  key_path: .keys
-  key_name: sp
-  fee: 4uiris
-  key_algorithm: sm2

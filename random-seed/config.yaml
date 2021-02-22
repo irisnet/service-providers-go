@@ -1,0 +1,12 @@
+# service config
+service:
+  chain_id: irishub
+  node_rpc_addr: http://localhost:26657
+  node_grpc_addr: localhost:9090
+  key_path: .keys
+  key_name: sp
+  fee: 0.4iris
+  key_algorithm: secp256k1
+
+API:
+  random-seed-api: https://www.random.org/cgi-bin/randbyte?nbytes=32&format=h
