@@ -1,9 +1,12 @@
 package app
 
 import (
+	"time"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/irisnet/service-providers-go/token-price/common"
+	"github.com/irisnet/service-providers-go/token-price/monitor"
 	"github.com/irisnet/service-providers-go/token-price/service"
 	callback "github.com/irisnet/service-providers-go/token-price/token-price"
 	"github.com/irisnet/service-providers-go/token-price/types"
@@ -17,9 +20,7 @@ type App struct {
 }
 
 // NewApp constructs a new App instance
-func NewApp(
-	serviceClient service.ServiceClientWrapper,
-) App {
+func NewApp(serviceClient service.ServiceClientWrapper) App {
 	return App{
 		ServiceClient:   serviceClient,
 		RequestCallback: callback.RequestCallback,
@@ -37,4 +38,19 @@ func (app App) Start() {
 	}
 
 	select {}
+}
+
+func (app App) StartMonitor(monitor *monitor.Monitor) {
+	common.Logger.Infof("monitor started, provider addresses: %v", monitor.ProviderAddresses)
+
+	for {
+		monitor.Scan()
+
+		if !monitor.Stopped {
+			time.Sleep(monitor.Interval)
+			continue
+		}
+
+		return
+	}
 }

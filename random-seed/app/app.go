@@ -1,11 +1,14 @@
 package app
 
 import (
+	"time"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/irisnet/service-providers-go/random-seed/common"
-	"github.com/irisnet/service-providers-go/random-seed/service"
+	"github.com/irisnet/service-providers-go/random-seed/monitor"
 	callback "github.com/irisnet/service-providers-go/random-seed/random-seed"
+	"github.com/irisnet/service-providers-go/random-seed/service"
 	"github.com/irisnet/service-providers-go/random-seed/types"
 )
 
@@ -35,4 +38,19 @@ func (app App) Start() {
 	}
 
 	select {}
+}
+
+func (app App) StartMonitor(monitor *monitor.Monitor) {
+	common.Logger.Infof("monitor started, provider addresses: %v", monitor.ProviderAddresses)
+
+	for {
+		monitor.Scan()
+
+		if !monitor.Stopped {
+			time.Sleep(monitor.Interval)
+			continue
+		}
+
+		return
+	}
 }

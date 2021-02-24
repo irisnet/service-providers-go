@@ -2,6 +2,7 @@ package random_seed
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -30,9 +31,11 @@ func RequestCallback(reqID, input string) (
 
 	// Supplementary service logic...
 	res, err := getRandomSeed()
+	fmt.Println(err)
 	if err != nil {
 		requestResult.State = types.ServiceError
 		requestResult.Message = "failed to get random seed"
+		return output, requestResult
 	}
 
 	seed := string(res)

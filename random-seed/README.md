@@ -15,15 +15,15 @@
     | key_algorithm | Key algorithm |
 
 - Example
-```yaml
-chain_id: irishub
-node_rpc_addr: http://localhost:26657
-node_grpc_addr: http://localhost:9090
-key_path: .keys
-key_name: node0
-fee: 0.4iris
-key_algorithm: secp256k1
-```
+    ```yaml
+    chain_id: irishub
+    node_rpc_addr: http://localhost:26657
+    node_grpc_addr: http://localhost:9090
+    key_path: .keys
+    key_name: node0
+    fee: 0.4iris
+    key_algorithm: secp256k1
+    ```
 
 ## 2 Key management
 
@@ -35,32 +35,33 @@ key_algorithm: secp256k1
     | show | Show information of key |
     | import | Import key |
       
-    - You need to put the exported information into a file .keys, and specify the path of the file in config.yaml.
+- You need to put the exported information into a file .keys, and specify the path of the file in config.yaml.
 
-      ### 1.1 Export node0
+  ### 2.1 Export node0
 
-        ```shell
-        iris keys export node0 --home /home/testnet/node0/iriscli
-        ```
+    ```shell
+    iris keys export node0 --home /home/testnet/node0/iriscli
+    ```
 
-      ### 1.2 Import node0
+  ### 2.2 Import node0
 
-        ```shell
-        random-seed-sp keys import node0
-        ```
+    ```shell
+    random-seed-sp keys import node0
+    ```
 
-## 3  The files that need to be modified are on the floder random-seed/random-seed and token-price/token-price.
+## 3 Modify config.yaml
 
 ## 4 Run docker
 
-    - build
+- build
+  
+    ```shell
+    docker build -t random-seed .
+    ```
     
-        ```shell
-        docker build -t random-seed .
-        ```
-    
-    -run
+  -run
 
-        ```shell
-        docker run -it random-seed
-        ```
+    ```shell
+    docker run -it random-seed
+    echo ${your_password} | random-seed-sp start
+    ```

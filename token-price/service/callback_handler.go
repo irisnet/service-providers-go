@@ -6,6 +6,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/irisnet/service-providers-go/token-price/common"
 	"github.com/irisnet/service-providers-go/token-price/types"
 )
 
@@ -56,7 +57,8 @@ func buildResAndOutput(
 ) (response, result string) {
 	resBz, err := json.Marshal(res)
 	if err != nil {
-		result = "failed to parse result"
+		common.Logger.Errorf("failed to marshal result, err: %s", err)
+		result = "{\"code\":500,\"message\":\"failed to marshal result\"}"
 	} else {
 		result = string(resBz)
 	}
@@ -64,7 +66,8 @@ func buildResAndOutput(
 	if res.Code == 200 {
 		outputBz, err := json.Marshal(&serviceOutput)
 		if err != nil {
-			response = "failed to parse response"
+			common.Logger.Errorf("failed to marshal response, err: %s", err)
+			result = "{\"code\":500,\"message\":\"failed to marshal response\"}"
 		} else {
 			response = fmt.Sprintf(`{"header":{},"body":%s}`, string(outputBz))
 		}

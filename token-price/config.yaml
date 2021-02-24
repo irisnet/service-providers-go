@@ -5,8 +5,19 @@ service:
   node_grpc_addr: localhost:9090
   key_path: .keys
   key_name: sp
-  fee: 0.4iris
+  fee: 1iris
   key_algorithm: secp256k1
 
 API:
   cmc: https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?CMC_PRO_API_KEY=43bf626f-772c-4d81-9bd4-db23a26f01d4&symbol=
+
+monitors:
+  rpc_endpoint: http://localhost:26657
+  grpc_endpoint: http://localhost:26657
+  interval: 5
+  prometheus_addr: http://localhost:88888
+  provider_addr:
+    - iaa1cq3xx80jym3jshlxmwnfwu840jxta032aa4jss
+
+balance:
+  threshold: 10
