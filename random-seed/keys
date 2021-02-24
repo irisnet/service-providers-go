@@ -1,9 +1,0 @@
------BEGIN TENDERMINT PRIVATE KEY-----
-kdf: bcrypt
-salt: 31282F79D52C8EFC2E35EB90FCB6A3AD
-type: secp256k1
-
-E3Qq6IuQzY+KpEZexpKMhr58oi3bsZtX1rDhkslNEDb+9/OAUQv5Dp7ms4re6dNc
-yldN8YxTimZGZwUXRvw2m/mpzyBX/osBwj3qZfw=
-=1Orx
------END TENDERMINT PRIVATE KEY-----

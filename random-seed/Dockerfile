@@ -15,6 +15,6 @@ RUN make install
 
 FROM alpine:3.12
 
-COPY --from=builder /go/bin/random-seed-sp /usr/local/bin
+COPY --from=builder /go/bin/random-sp /usr/local/bin
 
-ENTRYPOINT ["random-seed-sp", "start"]
+ENTRYPOINT ["random-sp", "start"]
