@@ -1,16 +1,16 @@
-package random_seed
+package random
 
 import (
 	"github.com/irisnet/service-providers-go/random-seed/common"
 )
 
 const (
-	prefix = "API"
-	RANDOMSEEDAPI = "random-seed-api"
+	prefix        = "API"
+	RANDOMSEEDAPI = "random-api"
 )
 
 func getAPI() (string, error) {
-	config , err := common.LoadYAMLConfig(common.ConfigPath)
+	config, err := common.LoadYAMLConfig(common.ConfigPath)
 	if err != nil {
 		return "", err
 	}

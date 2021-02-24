@@ -10,7 +10,7 @@ import (
 // rootCmd is the entry
 var (
 	rootCmd = &cobra.Command{
-		Use:   "random-seed-sp",
+		Use:   "random-sp",
 		Short: "random seed service provider",
 	}
 )
