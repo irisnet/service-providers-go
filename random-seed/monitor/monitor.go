@@ -2,10 +2,10 @@ package monitor
 
 import (
 	"context"
-	"fmt"
-	"github.com/spf13/viper"
 	"net/http"
 	"time"
+
+	"github.com/spf13/viper"
 
 	servicesdk "github.com/irisnet/service-sdk-go"
 	"github.com/irisnet/service-sdk-go/types"
@@ -23,14 +23,14 @@ var (
 			Name: "balance",
 			Help: "",
 		},
-		[]string{"err:"},
+		nil,
 	)
 	slashed = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "slashed",
 			Help: "",
 		},
-		[]string{"err:"},
+		nil,
 	)
 )
 
@@ -75,29 +75,30 @@ func NewMonitor(
 		RPCEndpoint:       rpcEndpoint,
 		GRPCEndpoint:      grpcEndpoint,
 		Interval:          interval,
-		Threshold: threshold,
+		Threshold:         threshold,
 		ProviderAddresses: addressMap,
 	}
 
 }
 
 func NewConfig(viper *viper.Viper) (Endpoint, Endpoint, string, time.Duration, int64, []string) {
-	rpcURL := viper.GetString("irishub.rpc_endpoint")
-	gRPCURL := viper.GetString("irishub.grpc_endpoint")
-	prometheusAddr := viper.GetString("irishub.prometheus_addr")
-	interval := viper.GetInt64("irishub.interval")
-	providerAddrs := viper.GetStringSlice("irishub.provider_addresses")
-	threshold := viper.GetInt64("balance.threshold")
+	rpcURL := viper.GetString("monitors.rpc_endpoint")
+	gRPCURL := viper.GetString("monitors.grpc_endpoint")
+	prometheusAddr := viper.GetString("monitors.prometheus_addr")
+	interval := viper.GetInt64("monitors.interval")
+	providerAddrs := viper.GetStringSlice("monitors.provider_addr")
+	threshold := viper.GetInt64("monitors.threshold")
 
 	rpcEndpoint := NewEndpointFromURL(rpcURL)
 	grpcEndpoint := NewEndpointFromURL(gRPCURL)
 
-	return rpcEndpoint, grpcEndpoint,prometheusAddr, time.Duration(interval)*time.Second, threshold, providerAddrs
+	return rpcEndpoint, grpcEndpoint, prometheusAddr, time.Duration(interval) * time.Second, threshold, providerAddrs
 }
 
 func startListner(addr string) {
 	// Register the summary and the histogram with Prometheus's default registry.
 	prometheus.MustRegister(balance)
+	prometheus.MustRegister(slashed)
 	srv := &http.Server{
 		Addr: addr,
 		Handler: promhttp.InstrumentMetricHandler(
@@ -111,8 +112,7 @@ func startListner(addr string) {
 	go func() {
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 			// Error starting or closing listener:
-			balance.WithLabelValues("Prometheus HTTP server ListenAndServe err: ", fmt.Sprintf("%s", err))
-
+			panic(err.Error())
 		}
 	}()
 }
@@ -166,11 +166,8 @@ func (m *Monitor) scanByRange(startHeight int64, endHeight int64) {
 		if err != nil {
 			common.Logger.Errorf("failed to query balance, err: %s", err)
 		}
-		isLTE := baseAccount.Coins.IsAllLTE(types.NewCoins(types.NewCoin(baseAccount.Coins.GetDenomByIndex(0), types.NewInt(m.Threshold))))
-		if isLTE {
-			balance.WithLabelValues("balance of address(", addr, ") is almost empty!")
-			common.Logger.Warnf("balance of address(%s) is almost empty!", addr)
-		}
+		amount := baseAccount.Coins.AmountOf("uiris")
+		balance.WithLabelValues().Set(float64(amount.Quo(types.NewIntWithDecimal(10, 6)).Int64()))
 	}
 
 	m.lastHeight = endHeight
@@ -190,9 +187,7 @@ func (m *Monitor) parseSlashEventsFromTxs(txsResults []*abci.ResponseDeliverTx) 
 	for _, txResult := range txsResults {
 		for _, event := range txResult.Events {
 			if m.IsTargetedSlashEvent(event) {
-				requestID, _ := getAttributeValue(event, "request_id")
-				slashed.WithLabelValues("slashed for request id ", requestID, " due to invalid response")
-				common.Logger.Warnf("slashed for request id %s due to invalid response", requestID)
+				slashed.WithLabelValues().Set(1)
 			}
 		}
 	}
@@ -201,9 +196,7 @@ func (m *Monitor) parseSlashEventsFromTxs(txsResults []*abci.ResponseDeliverTx) 
 func (m *Monitor) parseSlashEventsFromBlock(endBlockEvents []abci.Event) {
 	for _, event := range endBlockEvents {
 		if m.IsTargetedSlashEvent(event) {
-			requestID, _ := getAttributeValue(event, "request_id")
-			slashed.WithLabelValues("slashed for request id ", requestID, " due to timeouted")
-			common.Logger.Warnf("slashed for request id %s due to response timeouted", requestID)
+			slashed.WithLabelValues().Set(1)
 		}
 	}
 }

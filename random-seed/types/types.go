@@ -1,7 +1,7 @@
 package types
 
 const (
-	ServiceName = "random-seed"
+	ServiceName = "random"
 )
 
 type RequestCallback func(reqID, input string) (output *ServiceOutput, requestResult *RequestResult)

@@ -36,8 +36,6 @@ func (app App) Start() {
 		app.Logger.Errorf("failed to subscribe service request, err: %s", err.Error())
 		return
 	}
-
-	select {}
 }
 
 func (app App) StartMonitor(monitor *monitor.Monitor) {

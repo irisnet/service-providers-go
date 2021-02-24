@@ -39,7 +39,7 @@ func startCmd() *cobra.Command {
 			m := monitor.NewMonitor(monitor.NewConfig(config))
 			appInstance.StartMonitor(m)
 
-			return nil
+			select {}
 		},
 	}
 	return cmd

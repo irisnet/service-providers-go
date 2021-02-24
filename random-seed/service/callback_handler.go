@@ -68,6 +68,8 @@ func buildResAndOutput(
 		} else {
 			response = fmt.Sprintf(`{"header":{},"body":%s}`, string(outputBz))
 		}
+	} else {
+		response = ""
 	}
 
 	return response, result

@@ -50,10 +50,10 @@ func RequestCallback(reqID, input string) (
 }
 
 func getRandomSeed() ([]byte, error) {
-	RandomSeedAPI,err := getAPI()
-	 if err != nil {
-	 	return nil, err
-	 }
+	RandomSeedAPI, err := getAPI()
+	if err != nil {
+		return nil, err
+	}
 
 	Response, err := http.Get(RandomSeedAPI)
 	if err != nil {
@@ -68,7 +68,7 @@ func getRandomSeed() ([]byte, error) {
 	}()
 
 	res, err := ioutil.ReadAll(Response.Body)
-	if err !=nil{
+	if err != nil {
 		return nil, err
 	}
 	return res, nil
