@@ -4,7 +4,7 @@ export GO111MODULE = on
 
 install:
 	@echo "installing..."
-	@go build -o ${GOPATH}/bin/random-seed-sp ./cmd
+	@go build -o ${GOPATH}/bin/random-sp ./cmd
 
 format:
 	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "*.pb.go" | xargs gofmt -w -s

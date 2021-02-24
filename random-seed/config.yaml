@@ -9,11 +9,9 @@ service:
   key_algorithm: secp256k1
 
 API:
-  random-seed-api: http://www.random.org/cgi-bin/randbyte?nbytes=32&format=h
+  random-seed-api: https://www.random.org/cgi-bin/randbyte?nbytes=32&format=h
 
-monitors:
-  rpc_endpoint: http://localhost:26657
-  grpc_endpoint: localhost:9090
+monitor:
   interval: 5
   prometheus_addr: 0.0.0.0:8888
   provider_addr:

@@ -7,7 +7,7 @@ import (
 
 	"github.com/irisnet/service-providers-go/random-seed/common"
 	"github.com/irisnet/service-providers-go/random-seed/monitor"
-	callback "github.com/irisnet/service-providers-go/random-seed/random-seed"
+	callback "github.com/irisnet/service-providers-go/random-seed/random"
 	"github.com/irisnet/service-providers-go/random-seed/service"
 	"github.com/irisnet/service-providers-go/random-seed/types"
 )

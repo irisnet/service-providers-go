@@ -2,15 +2,15 @@ package monitor
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/spf13/viper"
 
 	servicesdk "github.com/irisnet/service-sdk-go"
 	"github.com/irisnet/service-sdk-go/types"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmtypes "github.com/tendermint/tendermint/rpc/core/types"
 
@@ -21,13 +21,6 @@ var (
 	balance = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "balance",
-			Help: "",
-		},
-		nil,
-	)
-	slashed = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "slashed",
 			Help: "",
 		},
 		nil,
@@ -49,14 +42,17 @@ type Monitor struct {
 	Stopped           bool
 }
 
-func NewMonitor(
-	rpcEndpoint Endpoint,
-	grpcEndpoint Endpoint,
-	prometheusAddr string,
-	interval time.Duration,
-	threshold int64,
-	providerAddresses []string,
-) *Monitor {
+func NewMonitor(viper *viper.Viper) *Monitor {
+	rpcURL := viper.GetString("service.node_rpc_addr")
+	grpcURL := viper.GetString("service.node_grpc_addr")
+	prometheusAddr := viper.GetString("monitor.prometheus_addr")
+	interval := viper.GetInt64("monitor.interval")
+	providerAddrs := viper.GetStringSlice("monitor.provider_addr")
+	threshold := viper.GetInt64("balance.threshold")
+
+	rpcEndpoint := NewEndpointFromURL(rpcURL)
+	grpcEndpoint := NewEndpointFromURL(grpcURL)
+
 	cfg := types.ClientConfig{
 		NodeURI:  rpcEndpoint.URL,
 		GRPCAddr: grpcEndpoint.URL,
@@ -64,7 +60,7 @@ func NewMonitor(
 	serviceClient := servicesdk.NewServiceClient(cfg)
 
 	addressMap := make(map[string]bool)
-	for _, addr := range providerAddresses {
+	for _, addr := range providerAddrs {
 		addressMap[addr] = true
 	}
 
@@ -72,33 +68,16 @@ func NewMonitor(
 
 	return &Monitor{
 		Client:            serviceClient,
-		RPCEndpoint:       rpcEndpoint,
-		GRPCEndpoint:      grpcEndpoint,
-		Interval:          interval,
+		Interval:          time.Duration(interval) * time.Second,
 		Threshold:         threshold,
 		ProviderAddresses: addressMap,
 	}
 
 }
 
-func NewConfig(viper *viper.Viper) (Endpoint, Endpoint, string, time.Duration, int64, []string) {
-	rpcURL := viper.GetString("monitors.rpc_endpoint")
-	gRPCURL := viper.GetString("monitors.grpc_endpoint")
-	prometheusAddr := viper.GetString("monitors.prometheus_addr")
-	interval := viper.GetInt64("monitors.interval")
-	providerAddrs := viper.GetStringSlice("monitors.provider_addr")
-	threshold := viper.GetInt64("monitors.threshold")
-
-	rpcEndpoint := NewEndpointFromURL(rpcURL)
-	grpcEndpoint := NewEndpointFromURL(gRPCURL)
-
-	return rpcEndpoint, grpcEndpoint, prometheusAddr, time.Duration(interval) * time.Second, threshold, providerAddrs
-}
-
 func startListner(addr string) {
 	// Register the summary and the histogram with Prometheus's default registry.
 	prometheus.MustRegister(balance)
-	prometheus.MustRegister(slashed)
 	srv := &http.Server{
 		Addr: addr,
 		Handler: promhttp.InstrumentMetricHandler(
@@ -112,7 +91,8 @@ func startListner(addr string) {
 	go func() {
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 			// Error starting or closing listener:
-			panic(err.Error())
+			common.Logger.Error("Prometheus HTTP server ListenAndServe err: ", err)
+			balance.WithLabelValues("Prometheus HTTP server ListenAndServe err: ", fmt.Sprintf("%s", err)).Set(1)
 		}
 	}()
 }
@@ -187,7 +167,8 @@ func (m *Monitor) parseSlashEventsFromTxs(txsResults []*abci.ResponseDeliverTx) 
 	for _, txResult := range txsResults {
 		for _, event := range txResult.Events {
 			if m.IsTargetedSlashEvent(event) {
-				slashed.WithLabelValues().Set(1)
+				requestID, _ := getAttributeValue(event, "request_id")
+				common.Logger.Warnf("slashed for request id %s due to invalid response", requestID)
 			}
 		}
 	}
@@ -196,7 +177,8 @@ func (m *Monitor) parseSlashEventsFromTxs(txsResults []*abci.ResponseDeliverTx) 
 func (m *Monitor) parseSlashEventsFromBlock(endBlockEvents []abci.Event) {
 	for _, event := range endBlockEvents {
 		if m.IsTargetedSlashEvent(event) {
-			slashed.WithLabelValues().Set(1)
+			requestID, _ := getAttributeValue(event, "request_id")
+			common.Logger.Warnf("slashed for request id %s due to response timeouted", requestID)
 		}
 	}
 }
