@@ -7,21 +7,44 @@ import (
 	"time"
 
 	servicesdk "github.com/irisnet/service-sdk-go"
-	"github.com/irisnet/service-sdk-go/types"
+	sdktypes "github.com/irisnet/service-sdk-go/types"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
-	tmtypes "github.com/tendermint/tendermint/rpc/core/types"
+	tmsdktypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	"github.com/irisnet/service-providers-go/random-seed/common"
+	"github.com/irisnet/service-providers-go/random-seed/types"
 )
 
 var (
 	baseDenom = "uiris"
+
 	balance   = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "balance",
+			Help: "",
+		},
+		nil,
+	)
+	slashed   = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "slashed",
+			Help: "",
+		},
+		nil,
+	)
+	binding   = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "binding",
+			Help: "",
+		},
+		nil,
+	)
+	block   = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "block",
 			Help: "",
 		},
 		nil,
@@ -55,7 +78,7 @@ func NewMonitor(viper *viper.Viper) *Monitor {
 	rpcEndpoint := NewEndpointFromURL(rpcURL)
 	grpcEndpoint := NewEndpointFromURL(grpcURL)
 
-	cfg := types.ClientConfig{
+	cfg := sdktypes.ClientConfig{
 		NodeURI:  rpcEndpoint.URL,
 		GRPCAddr: grpcEndpoint.URL,
 	}
@@ -80,6 +103,10 @@ func NewMonitor(viper *viper.Viper) *Monitor {
 func startListner(addr string) {
 	// Register the summary and the histogram with Prometheus's default registry.
 	prometheus.MustRegister(balance)
+	prometheus.MustRegister(slashed)
+	prometheus.MustRegister(binding)
+	prometheus.MustRegister(block)
+
 	srv := &http.Server{
 		Addr: addr,
 		Handler: promhttp.InstrumentMetricHandler(
@@ -128,6 +155,7 @@ func (m *Monitor) scanByRange(startHeight int64, endHeight int64) {
 	for h := startHeight; h <= endHeight; h++ {
 		_, err := m.Client.BlockResults(context.Background(), &h)
 		if err != nil {
+			block.WithLabelValues().Set(500)
 			common.Logger.Warnf("failed to retrieve the block result, height: %d, err: %s", h, err)
 			continue
 		}
@@ -137,25 +165,21 @@ func (m *Monitor) scanByRange(startHeight int64, endHeight int64) {
 		for h := startHeight; h <= endHeight; h++ {
 			blockResult, err := m.Client.BlockResults(context.Background(), &h)
 			if err != nil {
+				block.WithLabelValues().Set(500)
 				common.Logger.Warnf("failed to retrieve the block result, height: %d, err: %s", h, err)
 				continue
 			}
 			m.parseSlashEvents(blockResult)
+			m.checkBalance(addr)
+			m.checkServiceBinding(addr)
 		}
 		m.lastHeight = endHeight
-
-		baseAccount, err := m.Client.QueryAccount(addr)
-		if err != nil {
-			common.Logger.Errorf("failed to query balance, err: %s", err)
-		}
-		amount := baseAccount.Coins.AmountOf(baseDenom)
-		balance.WithLabelValues().Set(float64(amount.Quo(types.NewIntWithDecimal(10, 6)).Int64()))
 	}
 
 	m.lastHeight = endHeight
 }
 
-func (m *Monitor) parseSlashEvents(blockResult *tmtypes.ResultBlockResults) {
+func (m *Monitor) parseSlashEvents(blockResult *tmsdktypes.ResultBlockResults) {
 	if len(blockResult.TxsResults) > 0 {
 		m.parseSlashEventsFromTxs(blockResult.TxsResults)
 	}
@@ -202,12 +226,33 @@ func (m *Monitor) IsTargetedSlashEvent(event abci.Event) bool {
 	return true
 }
 
+func (m *Monitor) checkBalance(addr string) {
+	baseAccount, err := m.Client.QueryAccount(addr)
+	if err != nil {
+		balance.WithLabelValues().Set(500)
+		common.Logger.Errorf("failed to query balance, err: %s", err)
+	}
+	balance.WithLabelValues().Set(float64(baseAccount.Coins.AmountOf(baseDenom).Uint64()))
+}
+
+func (m *Monitor) checkServiceBinding(addr string) {
+	queryServiceBindingResponse, err := m.Client.QueryServiceBinding(types.ServiceName, addr)
+	if err != nil {
+		binding.WithLabelValues().Set(500)
+		common.Logger.Errorf("failed to query balance, err: %s", err)
+	}
+	if queryServiceBindingResponse.Available == false {
+		binding.WithLabelValues().Set(500)
+		common.Logger.Warnf("balance of address(%s) is almost empty!", addr)
+	}
+}
+
 func (m *Monitor) Stop() {
 	common.Logger.Info("monitor stopped")
 	m.Stopped = true
 }
 
 func getAttributeValue(event abci.Event, attributeKey string) (string, error) {
-	stringEvents := types.StringifyEvents([]abci.Event{event})
+	stringEvents := sdktypes.StringifyEvents([]abci.Event{event})
 	return stringEvents.GetValue(event.Type, attributeKey)
 }
