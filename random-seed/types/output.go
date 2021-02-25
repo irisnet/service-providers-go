@@ -7,7 +7,7 @@ import "encoding/json"
 
 // IRIS Hub Random Seed Output Body Schema
 type ServiceOutput struct {
-	// random-seed seed
+	// random seed
 	Seed string `json:"seed"`
 }
 

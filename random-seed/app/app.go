@@ -7,7 +7,7 @@ import (
 
 	"github.com/irisnet/service-providers-go/random-seed/common"
 	"github.com/irisnet/service-providers-go/random-seed/monitor"
-	callback "github.com/irisnet/service-providers-go/random-seed/random-seed"
+	callback "github.com/irisnet/service-providers-go/random-seed/random"
 	"github.com/irisnet/service-providers-go/random-seed/service"
 	"github.com/irisnet/service-providers-go/random-seed/types"
 )
@@ -36,8 +36,6 @@ func (app App) Start() {
 		app.Logger.Errorf("failed to subscribe service request, err: %s", err.Error())
 		return
 	}
-
-	select {}
 }
 
 func (app App) StartMonitor(monitor *monitor.Monitor) {

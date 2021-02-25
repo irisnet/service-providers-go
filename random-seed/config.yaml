@@ -4,20 +4,18 @@ service:
   node_rpc_addr: http://localhost:26657
   node_grpc_addr: localhost:9090
   key_path: .keys
-  key_name: sp
+  key_name: node0
   fee: 1iris
   key_algorithm: secp256k1
 
 API:
-  random-seed-api: http://www.random.org/cgi-bin/randbyte?nbytes=32&format=h
+  random-seed-api: https://www.random.org/cgi-bin/randbyte?nbytes=32&format=h
 
-monitors:
-  rpc_endpoint: http://localhost:26657
-  grpc_endpoint: http://localhost:26657
+monitor:
   interval: 5
-  prometheus_addr: http://localhost:88888
+  prometheus_addr: 0.0.0.0:8888
   provider_addr:
-    - iaa1cq3xx80jym3jshlxmwnfwu840jxta032aa4jss
+    - iaa1vczh0qgek4nskcr3vng3akmz4qjaf3ah6wp24k
 
 balance:
   threshold: 10

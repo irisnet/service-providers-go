@@ -46,7 +46,7 @@
   ### 2.2 Import node0
 
     ```shell
-    random-seed-sp keys import node0
+    random-sp keys import node0
     ```
 
 ## 3 Modify config.yaml
@@ -56,12 +56,13 @@
 - build
   
     ```shell
-    docker build -t random-seed .
+    docker build -t irisnet/random-sp .
     ```
     
   -run
 
     ```shell
-    docker run -it random-seed
-    echo ${your_password} | random-seed-sp start
+    docker run -it -p 8888:8888 irisnet/random-sp /bin/sh
+    random-sp keys import node0 keyfile
+    echo ${your_password} | random-sp start
     ```

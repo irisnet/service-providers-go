@@ -1,8 +1,7 @@
-package random_seed
+package random
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -31,7 +30,6 @@ func RequestCallback(reqID, input string) (
 
 	// Supplementary service logic...
 	res, err := getRandomSeed()
-	fmt.Println(err)
 	if err != nil {
 		requestResult.State = types.ServiceError
 		requestResult.Message = "failed to get random seed"
@@ -50,10 +48,10 @@ func RequestCallback(reqID, input string) (
 }
 
 func getRandomSeed() ([]byte, error) {
-	RandomSeedAPI,err := getAPI()
-	 if err != nil {
-	 	return nil, err
-	 }
+	RandomSeedAPI, err := getAPI()
+	if err != nil {
+		return nil, err
+	}
 
 	Response, err := http.Get(RandomSeedAPI)
 	if err != nil {
@@ -68,7 +66,7 @@ func getRandomSeed() ([]byte, error) {
 	}()
 
 	res, err := ioutil.ReadAll(Response.Body)
-	if err !=nil{
+	if err != nil {
 		return nil, err
 	}
 	return res, nil
