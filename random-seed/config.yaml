@@ -14,6 +14,7 @@ API:
 monitor:
   interval: 5
   prometheus_addr: 0.0.0.0:8888
+  base_denom: uiris
   provider_addr:
     - iaa1vczh0qgek4nskcr3vng3akmz4qjaf3ah6wp24k
 

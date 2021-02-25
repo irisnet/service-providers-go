@@ -18,7 +18,8 @@ import (
 )
 
 var (
-	balance = prometheus.NewGaugeVec(
+	baseDenom = "uiris"
+	balance   = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "balance",
 			Help: "",
@@ -49,6 +50,7 @@ func NewMonitor(viper *viper.Viper) *Monitor {
 	interval := viper.GetInt64("monitor.interval")
 	providerAddrs := viper.GetStringSlice("monitor.provider_addr")
 	threshold := viper.GetInt64("balance.threshold")
+	baseDenom = viper.GetString("monitor.base_denom")
 
 	rpcEndpoint := NewEndpointFromURL(rpcURL)
 	grpcEndpoint := NewEndpointFromURL(grpcURL)
@@ -146,7 +148,7 @@ func (m *Monitor) scanByRange(startHeight int64, endHeight int64) {
 		if err != nil {
 			common.Logger.Errorf("failed to query balance, err: %s", err)
 		}
-		amount := baseAccount.Coins.AmountOf("uiris")
+		amount := baseAccount.Coins.AmountOf(baseDenom)
 		balance.WithLabelValues().Set(float64(amount.Quo(types.NewIntWithDecimal(10, 6)).Int64()))
 	}
 
