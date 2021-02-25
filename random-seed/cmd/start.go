@@ -16,7 +16,7 @@ func startCmd() *cobra.Command {
 		Example: `random-sp start [config-file]`,
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			password := "1234567890"
+			password := getPassword()
 
 			var configPath string
 

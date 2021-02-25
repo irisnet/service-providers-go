@@ -56,12 +56,13 @@
 - build
   
     ```shell
-    docker build -t random .
+    docker build -t irisnet/random-sp .
     ```
     
   -run
 
     ```shell
-    docker run -it random
+    docker run -it -p 8888:8888 irisnet/random-sp /bin/sh
+    random-sp keys import node0 keyfile
     echo ${your_password} | random-sp start
     ```

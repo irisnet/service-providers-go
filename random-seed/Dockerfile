@@ -16,5 +16,6 @@ RUN make install
 FROM alpine:3.12
 
 COPY --from=builder /go/bin/random-sp /usr/local/bin
+COPY --from=builder /app/config.yaml .
 
-ENTRYPOINT ["random-sp", "start"]
+EXPOSE 8888
