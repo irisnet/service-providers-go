@@ -6,7 +6,7 @@ import (
 
 const (
 	prefix        = "API"
-	RANDOMSEEDAPI = "random-api"
+	RANDOMSEEDAPI = "random-seed-api"
 )
 
 func getAPI() (string, error) {

@@ -43,12 +43,10 @@ func (app App) StartMonitor(monitor *monitor.Monitor) {
 
 	for {
 		monitor.Scan()
-
 		if !monitor.Stopped {
 			time.Sleep(monitor.Interval)
 			continue
 		}
-
 		return
 	}
 }
