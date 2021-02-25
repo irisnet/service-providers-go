@@ -28,3 +28,4 @@ func LoadYAMLConfig(configPath string) (*viper.Viper, error) {
 // GetConfigKey returns the key with the given prefix
 func GetConfigKey(prefix string, key string) string {
 	return fmt.Sprintf("%s.%s", prefix, key)
+}

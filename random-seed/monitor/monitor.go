@@ -11,7 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
-	tmtypes "github.com/tendermint/tendermint/rpc/core/types"
+	tmsdktypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	"github.com/irisnet/service-providers-go/random-seed/common"
 	"github.com/irisnet/service-providers-go/random-seed/types"
