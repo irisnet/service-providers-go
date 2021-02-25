@@ -1,258 +1,56 @@
-package monitor
+package service
 
 import (
-	"context"
-	"net/http"
-	"time"
-
-	servicesdk "github.com/irisnet/service-sdk-go"
-	sdktypes "github.com/irisnet/service-sdk-go/types"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/irisnet/service-sdk-go/types"
 	"github.com/spf13/viper"
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmtypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	"github.com/irisnet/service-providers-go/random-seed/common"
-	"github.com/irisnet/service-providers-go/random-seed/types"
+	"github.com/irisnet/service-providers-go/random-seed/utils"
 )
 
+// default config variables
 var (
-	baseDenom = "uiris"
-
-	balance = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "balance",
-			Help: "",
-		},
-		nil,
-	)
-	slashed = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "slashed",
-			Help: "",
-		},
-		nil,
-	)
-	binding = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "binding",
-			Help: "",
-		},
-		nil,
-	)
-	block = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "block",
-			Help: "",
-		},
-		nil,
-	)
+	defaultChainID       = "iris-hub"
+	defaultNodeRPCAddr   = "http://127.0.0.1:26657"
+	defaultNodeGRPCAddr  = "127.0.0.1:9090"
+	defaultKeyPath       = utils.MustGetHomeDir() + "/.iriscli"
+	defaultGas           = uint64(200000)
+	defaultFee           = "4uiris"
+	defaultBroadcastMode = types.Commit
+	defaultKeyAlgorithm  = "sm2"
 )
 
 const (
-	ServiceSlashingEventType = "service_slash"
+	Prefix       = "service"
+	ChainID      = "chain_id"
+	NodeRPCAddr  = "node_rpc_addr"
+	NodeGRPCAddr = "node_grpc_addr"
+	KeyPath      = "key_path"
+	KeyName      = "key_name"
+	Fee          = "fee"
+	KeyAlgorithm = "key_algorithm"
 )
 
-type Monitor struct {
-	Client            servicesdk.ServiceClient
-	RPCEndpoint       Endpoint
-	GRPCEndpoint      Endpoint
-	Interval          time.Duration
-	Threshold         int64
-	ProviderAddresses map[string]bool
-	lastHeight        int64
-	Stopped           bool
+// Config is a config struct for service
+type Config struct {
+	ChainID      string `yaml:"chain_id"`
+	NodeRPCAddr  string `yaml:"node_rpc_addr"`
+	NodeGRPCAddr string `yaml:"node_grpc_addr"`
+	KeyPath      string `yaml:"key_path"`
+	KeyName      string `yaml:"key_name"`
+	Fee          string `yaml:"fee"`
+	KeyAlgorithm string `yaml:"key_algorithm`
 }
 
-func NewMonitor(viper *viper.Viper) *Monitor {
-	rpcURL := viper.GetString("service.node_rpc_addr")
-	grpcURL := viper.GetString("service.node_grpc_addr")
-	prometheusAddr := viper.GetString("monitor.prometheus_addr")
-	interval := viper.GetInt64("monitor.interval")
-	providerAddrs := viper.GetStringSlice("monitor.provider_addr")
-	threshold := viper.GetInt64("balance.threshold")
-	baseDenom = viper.GetString("monitor.base_denom")
-
-	rpcEndpoint := NewEndpointFromURL(rpcURL)
-	grpcEndpoint := NewEndpointFromURL(grpcURL)
-
-	cfg := sdktypes.ClientConfig{
-		NodeURI:  rpcEndpoint.URL,
-		GRPCAddr: grpcEndpoint.URL,
+// NewConfig constructs a new Config from viper
+func NewConfig(v *viper.Viper) Config {
+	return Config{
+		ChainID:      v.GetString(common.GetConfigKey(Prefix, ChainID)),
+		NodeRPCAddr:  v.GetString(common.GetConfigKey(Prefix, NodeRPCAddr)),
+		NodeGRPCAddr: v.GetString(common.GetConfigKey(Prefix, NodeGRPCAddr)),
+		KeyPath:      v.GetString(common.GetConfigKey(Prefix, KeyPath)),
+		KeyName:      v.GetString(common.GetConfigKey(Prefix, KeyName)),
+		Fee:          v.GetString(common.GetConfigKey(Prefix, Fee)),
+		KeyAlgorithm: v.GetString(common.GetConfigKey(Prefix, KeyAlgorithm)),
 	}
-	serviceClient := servicesdk.NewServiceClient(cfg)
-
-	addressMap := make(map[string]bool)
-	for _, addr := range providerAddrs {
-		addressMap[addr] = true
-	}
-
-	startListner(prometheusAddr)
-
-	return &Monitor{
-		Client:            serviceClient,
-		Interval:          time.Duration(interval) * time.Second,
-		Threshold:         threshold,
-		ProviderAddresses: addressMap,
-	}
-
-}
-
-func startListner(addr string) {
-	// Register the summary and the histogram with Prometheus's default registry.
-	prometheus.MustRegister(balance)
-	prometheus.MustRegister(slashed)
-	prometheus.MustRegister(binding)
-	prometheus.MustRegister(block)
-
-	srv := &http.Server{
-		Addr: addr,
-		Handler: promhttp.InstrumentMetricHandler(
-			prometheus.DefaultRegisterer, promhttp.HandlerFor(
-				prometheus.DefaultGatherer,
-				promhttp.HandlerOpts{MaxRequestsInFlight: 10},
-			),
-		),
-	}
-
-	go func() {
-		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-			// Error starting or closing listener:
-			binding.WithLabelValues().Set(500)
-			common.Logger.Error("Prometheus HTTP server ListenAndServe err: ", err)
-		}
-	}()
-}
-
-func (m *Monitor) Scan() {
-	currentHeight, err := m.getLatestHeight()
-	if err != nil {
-		block.WithLabelValues().Set(500)
-		common.Logger.Warnf("failed to retrieve the latest block height: %s", err)
-		return
-	}
-
-	common.Logger.Infof("block height: %d", currentHeight)
-
-	if m.lastHeight == 0 {
-		m.lastHeight = currentHeight - 1
-	}
-
-	m.scanByRange(m.lastHeight+1, currentHeight)
-}
-
-func (m Monitor) getLatestHeight() (int64, error) {
-	res, err := m.Client.Status(context.Background())
-	if err != nil {
-		return -1, err
-	}
-
-	return res.SyncInfo.LatestBlockHeight, nil
-}
-
-func (m *Monitor) scanByRange(startHeight int64, endHeight int64) {
-	for h := startHeight; h <= endHeight; h++ {
-		_, err := m.Client.BlockResults(context.Background(), &h)
-		if err != nil {
-			block.WithLabelValues().Set(500)
-			common.Logger.Warnf("failed to retrieve the block result, height: %d, err: %s", h, err)
-			continue
-		}
-	}
-
-	for h := startHeight; h <= endHeight; h++ {
-		blockResult, err := m.Client.BlockResults(context.Background(), &h)
-		if err != nil {
-			block.WithLabelValues().Set(500)
-			common.Logger.Warnf("failed to retrieve the block result, height: %d, err: %s", h, err)
-			continue
-		}
-		m.parseSlashEvents(blockResult)
-		for addr := range m.ProviderAddresses {
-			m.checkBalance(addr)
-			m.checkServiceBinding(addr)
-		}
-	}
-	m.lastHeight = endHeight
-}
-
-func (m *Monitor) parseSlashEvents(blockResult *tmtypes.ResultBlockResults) {
-	if len(blockResult.TxsResults) > 0 {
-		m.parseSlashEventsFromTxs(blockResult.TxsResults)
-	}
-
-	if len(blockResult.EndBlockEvents) > 0 {
-		m.parseSlashEventsFromBlock(blockResult.EndBlockEvents)
-	}
-}
-
-func (m *Monitor) parseSlashEventsFromTxs(txsResults []*abci.ResponseDeliverTx) {
-	for _, txResult := range txsResults {
-		for _, event := range txResult.Events {
-			if m.IsTargetedSlashEvent(event) {
-				requestID, _ := getAttributeValue(event, "request_id")
-				slashed.WithLabelValues().Set(500)
-				common.Logger.Warnf("slashed for request id %s due to invalid response", requestID)
-			}
-		}
-	}
-}
-
-func (m *Monitor) parseSlashEventsFromBlock(endBlockEvents []abci.Event) {
-	for _, event := range endBlockEvents {
-		if m.IsTargetedSlashEvent(event) {
-			requestID, _ := getAttributeValue(event, "request_id")
-			slashed.WithLabelValues().Set(500)
-			common.Logger.Warnf("slashed for request id %s due to response timeouted", requestID)
-		}
-	}
-}
-
-func (m *Monitor) IsTargetedSlashEvent(event abci.Event) bool {
-	if event.Type != ServiceSlashingEventType {
-		return false
-	}
-
-	providerAddr, err := getAttributeValue(event, "provider")
-	if err != nil {
-		return false
-	}
-
-	if _, ok := m.ProviderAddresses[providerAddr]; !ok {
-		return false
-	}
-
-	return true
-}
-
-func (m *Monitor) checkBalance(addr string) {
-	baseAccount, err := m.Client.QueryAccount(addr)
-	if err != nil {
-		balance.WithLabelValues().Set(500)
-		common.Logger.Errorf("failed to query balance, err: %s", err)
-	}
-	balance.WithLabelValues().Set(float64(baseAccount.Coins.AmountOf(baseDenom).Uint64()))
-}
-
-func (m *Monitor) checkServiceBinding(addr string) {
-	queryServiceBindingResponse, err := m.Client.QueryServiceBinding(types.ServiceName, addr)
-	if err != nil {
-    binding.WithLabelValues().Set(500)
-		common.Logger.Errorf("failed to query balance, err: %s", err)
-	}
-	if queryServiceBindingResponse.Available == false {
-		binding.WithLabelValues().Set(500)
-		common.Logger.Warnf("balance of address(%s) is almost empty!", addr)
-	}
-}
-
-func (m *Monitor) Stop() {
-	common.Logger.Info("monitor stopped")
-	m.Stopped = true
-}
-
-func getAttributeValue(event abci.Event, attributeKey string) (string, error) {
-	stringEvents := sdktypes.StringifyEvents([]abci.Event{event})
-	return stringEvents.GetValue(event.Type, attributeKey)
 }
