@@ -19,29 +19,28 @@ import (
 
 var (
 	baseDenom = "uiris"
-
-	balance = prometheus.NewGaugeVec(
+	balance   = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "balance",
 			Help: "",
 		},
 		nil,
 	)
-	slashed = prometheus.NewGaugeVec(
+	slashed   = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "slashed",
 			Help: "",
 		},
 		nil,
 	)
-	binding = prometheus.NewGaugeVec(
+	binding   = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "binding",
 			Help: "",
 		},
 		nil,
 	)
-	block = prometheus.NewGaugeVec(
+	block   = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "block",
 			Help: "",
@@ -105,6 +104,7 @@ func startListner(addr string) {
 	prometheus.MustRegister(slashed)
 	prometheus.MustRegister(binding)
 	prometheus.MustRegister(block)
+
 	srv := &http.Server{
 		Addr: addr,
 		Handler: promhttp.InstrumentMetricHandler(
@@ -178,7 +178,7 @@ func (m *Monitor) scanByRange(startHeight int64, endHeight int64) {
 	m.lastHeight = endHeight
 }
 
-func (m *Monitor) parseSlashEvents(blockResult *tmtypes.ResultBlockResults) {
+func (m *Monitor) parseSlashEvents(blockResult *tmsdktypes.ResultBlockResults) {
 	if len(blockResult.TxsResults) > 0 {
 		m.parseSlashEventsFromTxs(blockResult.TxsResults)
 	}
