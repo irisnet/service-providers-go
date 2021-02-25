@@ -41,6 +41,13 @@ var (
 		},
 		nil,
 	)
+	block = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "block",
+			Help: "",
+		},
+		nil,
+	)
 )
 
 const (
@@ -97,6 +104,7 @@ func startListner(addr string) {
 	prometheus.MustRegister(balance)
 	prometheus.MustRegister(slashed)
 	prometheus.MustRegister(binding)
+	prometheus.MustRegister(block)
 	srv := &http.Server{
 		Addr: addr,
 		Handler: promhttp.InstrumentMetricHandler(
@@ -110,8 +118,8 @@ func startListner(addr string) {
 	go func() {
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 			// Error starting or closing listener:
-			common.Logger.Error("Prometheus HTTP server ListenAndServe err: ", err)
 			binding.WithLabelValues().Set(500)
+			common.Logger.Error("Prometheus HTTP server ListenAndServe err: ", err)
 		}
 	}()
 }
@@ -119,6 +127,7 @@ func startListner(addr string) {
 func (m *Monitor) Scan() {
 	currentHeight, err := m.getLatestHeight()
 	if err != nil {
+		block.WithLabelValues().Set(500)
 		common.Logger.Warnf("failed to retrieve the latest block height: %s", err)
 		return
 	}
@@ -145,6 +154,7 @@ func (m *Monitor) scanByRange(startHeight int64, endHeight int64) {
 	for h := startHeight; h <= endHeight; h++ {
 		_, err := m.Client.BlockResults(context.Background(), &h)
 		if err != nil {
+			block.WithLabelValues().Set(500)
 			common.Logger.Warnf("failed to retrieve the block result, height: %d, err: %s", h, err)
 			continue
 		}
@@ -154,15 +164,15 @@ func (m *Monitor) scanByRange(startHeight int64, endHeight int64) {
 		for h := startHeight; h <= endHeight; h++ {
 			blockResult, err := m.Client.BlockResults(context.Background(), &h)
 			if err != nil {
+				block.WithLabelValues().Set(500)
 				common.Logger.Warnf("failed to retrieve the block result, height: %d, err: %s", h, err)
 				continue
 			}
 			m.parseSlashEvents(blockResult)
+			m.checkBalance(addr)
+			m.checkServiceBinding(addr)
 		}
 		m.lastHeight = endHeight
-
-		m.checkBalance(addr)
-		m.checkServiceBinding(addr)
 	}
 
 	m.lastHeight = endHeight
@@ -220,6 +230,7 @@ func (m *Monitor) IsTargetedSlashEvent(event abci.Event) bool {
 func (m *Monitor) checkBalance(addr string) {
 	baseAccount, err := m.Client.QueryAccount(addr)
 	if err != nil {
+		balance.WithLabelValues().Set(500)
 		common.Logger.Errorf("failed to query balance, err: %s", err)
 	}
 	balance.WithLabelValues().Set(float64(baseAccount.Coins.AmountOf(baseDenom).Uint64()))
