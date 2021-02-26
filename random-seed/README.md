@@ -2,7 +2,7 @@
 
 ## 1 Config
 
-- Configuration parameter
+- parameter
   
     | name | description |
     | :---: | :---: |
