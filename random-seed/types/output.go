@@ -2,8 +2,10 @@
 
 package types
 
-import "fmt"
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 // IRIS Hub Random Seed Output Body Schema
 type ServiceOutput struct {

@@ -20,21 +20,21 @@ import (
 var (
 	baseDenom = "uiris"
 
-	balance   = prometheus.NewGaugeVec(
+	balance = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "balance",
 			Help: "",
 		},
 		nil,
 	)
-	slashed   = prometheus.NewCounterVec(
+	slashed = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "slashed",
 			Help: "",
 		},
 		nil,
 	)
-	binding   = prometheus.NewGaugeVec(
+	binding = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "binding",
 			Help: "",
@@ -234,7 +234,7 @@ func (m *Monitor) checkServiceBinding(addr string) {
 	}
 	if !queryServiceBindingResponse.Available {
 		binding.WithLabelValues().Set(0)
-	}else{
+	} else {
 		binding.WithLabelValues().Set(1)
 	}
 }
