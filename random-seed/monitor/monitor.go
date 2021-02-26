@@ -2,7 +2,6 @@ package monitor
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -121,7 +120,7 @@ func startListner(addr string) {
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 			// Error starting or closing listener:
 			common.Logger.Error("Prometheus HTTP server ListenAndServe err: ", err)
-			balance.WithLabelValues("Prometheus HTTP server ListenAndServe err: ", fmt.Sprintf("%s", err)).Set(1)
+			block.WithLabelValues().Set(0)
 		}
 	}()
 }
@@ -155,7 +154,7 @@ func (m *Monitor) scanByRange(startHeight int64, endHeight int64) {
 	for h := startHeight; h <= endHeight; h++ {
 		_, err := m.Client.BlockResults(context.Background(), &h)
 		if err != nil {
-			block.WithLabelValues().Set(500)
+			block.WithLabelValues().Set(0)
 			common.Logger.Warnf("failed to retrieve the block result, height: %d, err: %s", h, err)
 			continue
 		}
@@ -194,6 +193,7 @@ func (m *Monitor) parseSlashEventsFromTxs(txsResults []*abci.ResponseDeliverTx) 
 		for _, event := range txResult.Events {
 			if m.IsTargetedSlashEvent(event) {
 				requestID, _ := getAttributeValue(event, "request_id")
+				slashed.WithLabelValues().Set(0)
 				common.Logger.Warnf("slashed for request id %s due to invalid response", requestID)
 			}
 		}
@@ -204,6 +204,7 @@ func (m *Monitor) parseSlashEventsFromBlock(endBlockEvents []abci.Event) {
 	for _, event := range endBlockEvents {
 		if m.IsTargetedSlashEvent(event) {
 			requestID, _ := getAttributeValue(event, "request_id")
+			slashed.WithLabelValues().Set(0)
 			common.Logger.Warnf("slashed for request id %s due to response timeouted", requestID)
 		}
 	}
@@ -229,8 +230,9 @@ func (m *Monitor) IsTargetedSlashEvent(event abci.Event) bool {
 func (m *Monitor) checkBalance(addr string) {
 	baseAccount, err := m.Client.QueryAccount(addr)
 	if err != nil {
-		balance.WithLabelValues().Set(500)
+		balance.WithLabelValues().Set(0)
 		common.Logger.Errorf("failed to query balance, err: %s", err)
+		return
 	}
 	balance.WithLabelValues().Set(float64(baseAccount.Coins.AmountOf(baseDenom).Uint64()))
 }
@@ -238,11 +240,12 @@ func (m *Monitor) checkBalance(addr string) {
 func (m *Monitor) checkServiceBinding(addr string) {
 	queryServiceBindingResponse, err := m.Client.QueryServiceBinding(types.ServiceName, addr)
 	if err != nil {
-		binding.WithLabelValues().Set(500)
+		binding.WithLabelValues().Set(0)
 		common.Logger.Errorf("failed to query balance, err: %s", err)
+		return
 	}
 	if queryServiceBindingResponse.Available == false {
-		binding.WithLabelValues().Set(500)
+		binding.WithLabelValues().Set(0)
 		common.Logger.Warnf("balance of address(%s) is almost empty!", addr)
 	}
 }
