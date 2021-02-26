@@ -4,8 +4,8 @@ service:
   node_rpc_addr: http://localhost:26657
   node_grpc_addr: localhost:9090
   key_path: .keys
-  key_name: sp
-  fee: 3stake
+  key_name: node0
+  fee: 1iris
   key_algorithm: secp256k1
 
 API:
@@ -14,7 +14,7 @@ API:
 monitor:
   interval: 5
   prometheus_addr: 0.0.0.0:8888
-  base_denom: stake
+  base_denom: uiris
   provider_addr:
     - iaa1hs7s54kc60pcrpssm8xhfvdqj6cmg0kevr8r9s
 
