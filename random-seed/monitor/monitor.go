@@ -27,8 +27,8 @@ var (
 		},
 		nil,
 	)
-	slashed   = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
+	slashed   = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
 			Name: "slashed",
 			Help: "",
 		},
@@ -41,7 +41,7 @@ var (
 		},
 		nil,
 	)
-	block   = prometheus.NewGaugeVec(
+	listener = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "block",
 			Help: "",
@@ -104,7 +104,7 @@ func startListner(addr string) {
 	prometheus.MustRegister(balance)
 	prometheus.MustRegister(slashed)
 	prometheus.MustRegister(binding)
-	prometheus.MustRegister(block)
+	prometheus.MustRegister(listener)
 
 	srv := &http.Server{
 		Addr: addr,
@@ -120,7 +120,7 @@ func startListner(addr string) {
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 			// Error starting or closing listener:
 			common.Logger.Error("Prometheus HTTP server ListenAndServe err: ", err)
-			block.WithLabelValues().Set(0)
+			listener.WithLabelValues().Set(0)
 		}
 	}()
 }
@@ -154,7 +154,6 @@ func (m *Monitor) scanByRange(startHeight int64, endHeight int64) {
 	for h := startHeight; h <= endHeight; h++ {
 		_, err := m.Client.BlockResults(context.Background(), &h)
 		if err != nil {
-			block.WithLabelValues().Set(0)
 			common.Logger.Warnf("failed to retrieve the block result, height: %d, err: %s", h, err)
 			continue
 		}
@@ -164,7 +163,6 @@ func (m *Monitor) scanByRange(startHeight int64, endHeight int64) {
 		for h := startHeight; h <= endHeight; h++ {
 			blockResult, err := m.Client.BlockResults(context.Background(), &h)
 			if err != nil {
-				block.WithLabelValues().Set(500)
 				common.Logger.Warnf("failed to retrieve the block result, height: %d, err: %s", h, err)
 				continue
 			}
@@ -193,7 +191,7 @@ func (m *Monitor) parseSlashEventsFromTxs(txsResults []*abci.ResponseDeliverTx) 
 		for _, event := range txResult.Events {
 			if m.IsTargetedSlashEvent(event) {
 				requestID, _ := getAttributeValue(event, "request_id")
-				slashed.WithLabelValues().Set(0)
+				slashed.WithLabelValues().Add(1)
 				common.Logger.Warnf("slashed for request id %s due to invalid response", requestID)
 			}
 		}
@@ -204,7 +202,7 @@ func (m *Monitor) parseSlashEventsFromBlock(endBlockEvents []abci.Event) {
 	for _, event := range endBlockEvents {
 		if m.IsTargetedSlashEvent(event) {
 			requestID, _ := getAttributeValue(event, "request_id")
-			slashed.WithLabelValues().Set(0)
+			slashed.WithLabelValues().Add(1)
 			common.Logger.Warnf("slashed for request id %s due to response timeouted", requestID)
 		}
 	}
@@ -230,7 +228,6 @@ func (m *Monitor) IsTargetedSlashEvent(event abci.Event) bool {
 func (m *Monitor) checkBalance(addr string) {
 	baseAccount, err := m.Client.QueryAccount(addr)
 	if err != nil {
-		balance.WithLabelValues().Set(0)
 		common.Logger.Errorf("failed to query balance, err: %s", err)
 		return
 	}
@@ -244,9 +241,10 @@ func (m *Monitor) checkServiceBinding(addr string) {
 		common.Logger.Errorf("failed to query balance, err: %s", err)
 		return
 	}
-	if queryServiceBindingResponse.Available == false {
+	if !queryServiceBindingResponse.Available {
 		binding.WithLabelValues().Set(0)
-		common.Logger.Warnf("balance of address(%s) is almost empty!", addr)
+	}else{
+		binding.WithLabelValues().Set(1)
 	}
 }
 
