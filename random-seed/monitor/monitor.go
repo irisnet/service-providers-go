@@ -41,13 +41,6 @@ var (
 		},
 		nil,
 	)
-	listener = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "block",
-			Help: "",
-		},
-		nil,
-	)
 )
 
 const (
@@ -104,7 +97,6 @@ func startListner(addr string) {
 	prometheus.MustRegister(balance)
 	prometheus.MustRegister(slashed)
 	prometheus.MustRegister(binding)
-	prometheus.MustRegister(listener)
 
 	srv := &http.Server{
 		Addr: addr,
@@ -120,7 +112,6 @@ func startListner(addr string) {
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 			// Error starting or closing listener:
 			common.Logger.Error("Prometheus HTTP server ListenAndServe err: ", err)
-			listener.WithLabelValues().Set(0)
 		}
 	}()
 }
