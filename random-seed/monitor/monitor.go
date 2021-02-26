@@ -2,26 +2,41 @@ package monitor
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"time"
 
 	servicesdk "github.com/irisnet/service-sdk-go"
-	"github.com/irisnet/service-sdk-go/types"
+	sdktypes "github.com/irisnet/service-sdk-go/types"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
-	tmtypes "github.com/tendermint/tendermint/rpc/core/types"
+	tmsdktypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	"github.com/irisnet/service-providers-go/random-seed/common"
+	"github.com/irisnet/service-providers-go/random-seed/types"
 )
 
 var (
 	baseDenom = "uiris"
-	balance   = prometheus.NewGaugeVec(
+
+	balance = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "balance",
+			Help: "",
+		},
+		nil,
+	)
+	slashed = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "slashed",
+			Help: "",
+		},
+		nil,
+	)
+	binding = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "binding",
 			Help: "",
 		},
 		nil,
@@ -55,7 +70,7 @@ func NewMonitor(viper *viper.Viper) *Monitor {
 	rpcEndpoint := NewEndpointFromURL(rpcURL)
 	grpcEndpoint := NewEndpointFromURL(grpcURL)
 
-	cfg := types.ClientConfig{
+	cfg := sdktypes.ClientConfig{
 		NodeURI:  rpcEndpoint.URL,
 		GRPCAddr: grpcEndpoint.URL,
 	}
@@ -80,6 +95,9 @@ func NewMonitor(viper *viper.Viper) *Monitor {
 func startListner(addr string) {
 	// Register the summary and the histogram with Prometheus's default registry.
 	prometheus.MustRegister(balance)
+	prometheus.MustRegister(slashed)
+	prometheus.MustRegister(binding)
+
 	srv := &http.Server{
 		Addr: addr,
 		Handler: promhttp.InstrumentMetricHandler(
@@ -94,7 +112,6 @@ func startListner(addr string) {
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 			// Error starting or closing listener:
 			common.Logger.Error("Prometheus HTTP server ListenAndServe err: ", err)
-			balance.WithLabelValues("Prometheus HTTP server ListenAndServe err: ", fmt.Sprintf("%s", err)).Set(1)
 		}
 	}()
 }
@@ -141,21 +158,16 @@ func (m *Monitor) scanByRange(startHeight int64, endHeight int64) {
 				continue
 			}
 			m.parseSlashEvents(blockResult)
+			m.checkBalance(addr)
+			m.checkServiceBinding(addr)
 		}
 		m.lastHeight = endHeight
-
-		baseAccount, err := m.Client.QueryAccount(addr)
-		if err != nil {
-			common.Logger.Errorf("failed to query balance, err: %s", err)
-		}
-		amount := baseAccount.Coins.AmountOf(baseDenom)
-		balance.WithLabelValues().Set(float64(amount.Quo(types.NewIntWithDecimal(10, 6)).Int64()))
 	}
 
 	m.lastHeight = endHeight
 }
 
-func (m *Monitor) parseSlashEvents(blockResult *tmtypes.ResultBlockResults) {
+func (m *Monitor) parseSlashEvents(blockResult *tmsdktypes.ResultBlockResults) {
 	if len(blockResult.TxsResults) > 0 {
 		m.parseSlashEventsFromTxs(blockResult.TxsResults)
 	}
@@ -170,6 +182,7 @@ func (m *Monitor) parseSlashEventsFromTxs(txsResults []*abci.ResponseDeliverTx) 
 		for _, event := range txResult.Events {
 			if m.IsTargetedSlashEvent(event) {
 				requestID, _ := getAttributeValue(event, "request_id")
+				slashed.WithLabelValues().Add(1)
 				common.Logger.Warnf("slashed for request id %s due to invalid response", requestID)
 			}
 		}
@@ -180,6 +193,7 @@ func (m *Monitor) parseSlashEventsFromBlock(endBlockEvents []abci.Event) {
 	for _, event := range endBlockEvents {
 		if m.IsTargetedSlashEvent(event) {
 			requestID, _ := getAttributeValue(event, "request_id")
+			slashed.WithLabelValues().Add(1)
 			common.Logger.Warnf("slashed for request id %s due to response timeouted", requestID)
 		}
 	}
@@ -202,12 +216,35 @@ func (m *Monitor) IsTargetedSlashEvent(event abci.Event) bool {
 	return true
 }
 
+func (m *Monitor) checkBalance(addr string) {
+	baseAccount, err := m.Client.QueryAccount(addr)
+	if err != nil {
+		common.Logger.Errorf("failed to query balance, err: %s", err)
+		return
+	}
+	balance.WithLabelValues().Set(float64(baseAccount.Coins.AmountOf(baseDenom).Uint64()))
+}
+
+func (m *Monitor) checkServiceBinding(addr string) {
+	queryServiceBindingResponse, err := m.Client.QueryServiceBinding(types.ServiceName, addr)
+	if err != nil {
+		binding.WithLabelValues().Set(0)
+		common.Logger.Errorf("failed to query balance, err: %s", err)
+		return
+	}
+	if !queryServiceBindingResponse.Available {
+		binding.WithLabelValues().Set(0)
+	} else {
+		binding.WithLabelValues().Set(1)
+	}
+}
+
 func (m *Monitor) Stop() {
 	common.Logger.Info("monitor stopped")
 	m.Stopped = true
 }
 
 func getAttributeValue(event abci.Event, attributeKey string) (string, error) {
-	stringEvents := types.StringifyEvents([]abci.Event{event})
+	stringEvents := sdktypes.StringifyEvents([]abci.Event{event})
 	return stringEvents.GetValue(event.Type, attributeKey)
 }

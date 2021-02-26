@@ -2,7 +2,7 @@
 
 ## 1 Config
 
-- Configuration parameter
+- Parameter
   
     | name | description |
     | :---: | :---: |
@@ -66,3 +66,4 @@
     random-sp keys import node0 keyfile
     echo ${your_password} | random-sp start
     ```
+  
